@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:kumbmela_multilingual/text-to-speech/services/api_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -8,14 +10,14 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-
   final TextEditingController questionController = TextEditingController();
+  final ApiService apiService = ApiService();
+  final AudioPlayer player = AudioPlayer();
 
   String response = "";
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Enterprise AI Assistant"),
@@ -26,11 +28,9 @@ class _ChatScreenState extends State<ChatScreen> {
         padding: const EdgeInsets.all(20),
 
         child: Column(
-
           crossAxisAlignment: CrossAxisAlignment.stretch,
 
           children: [
-
             const SizedBox(height: 20),
 
             TextField(
@@ -49,18 +49,26 @@ class _ChatScreenState extends State<ChatScreen> {
             SizedBox(
               height: 50,
               child: ElevatedButton(
+                onPressed: () async {
+                  if (questionController.text.trim().isEmpty) {
+                    return;
+                  }
 
-                onPressed: () {
+                  final result = await apiService.sendMessage(
+                    questionController.text,
+                  );
 
                   setState(() {
-                    response = questionController.text;
+                    response = result.responseText;
                   });
 
+                  if (result.audioUrl != null) {
+                    await player.setUrl(result.audioUrl!);
+                    await player.play();
+                  }
                 },
 
-                child: const Text(
-                  "Send",
-                ),
+                child: const Text("Send"),
               ),
             ),
 
@@ -68,18 +76,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
             const Text(
               "Response",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
 
             const SizedBox(height: 10),
 
             Expanded(
-
               child: Container(
-
                 width: double.infinity,
 
                 padding: const EdgeInsets.all(16),
@@ -90,18 +93,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
 
                 child: Text(
-                  response.isEmpty
-                      ? "No response yet."
-                      : response,
-                  style: const TextStyle(
-                    fontSize: 16,
-                  ),
+                  response.isEmpty ? "No response yet." : response,
+                  style: const TextStyle(fontSize: 16),
                 ),
-
               ),
-
             ),
-
           ],
         ),
       ),
