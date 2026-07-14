@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:kumbmela_multilingual/constants.dart';
+import 'package:kumbmela_multilingual/models/speech_language.dart';
 import 'package:kumbmela_multilingual/models/transcription_model.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -110,18 +111,37 @@ class SpeechService {
   // ---------------------------------------------------------------------------
 
   /// Uploads [filePath] to Groq and returns the parsed transcription.
-  Future<TranscriptionModel> transcribeAudio(String filePath) async {
+  ///
+  /// When [language] is [SpeechLanguage.autoDetect], Whisper detects the
+  /// spoken language and transcribes in native script (not English translation).
+  /// Pass a specific [SpeechLanguage] to force Hindi, Tamil, etc.
+  Future<TranscriptionModel> transcribeAudio(
+    String filePath, {
+    SpeechLanguage language = SpeechLanguage.autoDetect,
+  }) async {
     _ensureApiKeyConfigured();
     await _validateRecordingFile(filePath);
 
     final fileName = filePath.split(Platform.pathSeparator).last;
 
     // Build multipart body required by the Groq Whisper endpoint.
-    final formData = FormData.fromMap({
+    // `/audio/transcriptions` keeps the original language.
+    // `/audio/translations` would convert everything to English — never use that.
+    final formMap = <String, dynamic>{
       'file': await MultipartFile.fromFile(filePath, filename: fileName),
       'model': AppConstants.whisperModel,
       'response_format': AppConstants.responseFormat,
-    });
+      'temperature': AppConstants.transcriptionTemperature,
+      // Native-script prompt steers Whisper away from English translation.
+      'prompt': language.promptHint,
+    };
+
+    // Omit `language` for auto-detect; send ISO 639-1 code when user picks one.
+    if (!language.isAutoDetect) {
+      formMap['language'] = language.code;
+    }
+
+    final formData = FormData.fromMap(formMap);
 
     try {
       final response = await _dio.post<Map<String, dynamic>>(

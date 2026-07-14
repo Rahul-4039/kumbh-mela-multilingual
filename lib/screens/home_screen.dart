@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:kumbmela_multilingual/models/speech_language.dart';
 import 'package:kumbmela_multilingual/services/speech_service.dart';
 import 'package:kumbmela_multilingual/widgets/record_button.dart';
 
@@ -27,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isPlaying = false;
   String? _audioPath;
   String _transcript = '';
+  String? _detectedLanguage;
+  SpeechLanguage _selectedLanguage = SpeechLanguage.autoDetect;
   String? _errorMessage;
   Duration _playbackPosition = Duration.zero;
   Duration _playbackDuration = Duration.zero;
@@ -120,9 +123,15 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final result = await _speechService.transcribeAudio(path);
+      final result = await _speechService.transcribeAudio(
+        path,
+        language: _selectedLanguage,
+      );
       if (mounted) {
-        setState(() => _transcript = result.text);
+        setState(() {
+          _transcript = result.text;
+          _detectedLanguage = result.detectedLanguage;
+        });
       }
     } on SpeechServiceException catch (error) {
       if (mounted) setState(() => _errorMessage = error.message);
@@ -158,6 +167,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return '$minutes:$seconds';
   }
 
+  String _languageLabel(String code) {
+    for (final language in SpeechLanguage.options) {
+      if (language.code == code) return language.label;
+    }
+    return code.toUpperCase();
+  }
+
   // ---------------------------------------------------------------------------
   // Clear / reset
   // ---------------------------------------------------------------------------
@@ -170,6 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _isPlaying = false;
       _audioPath = null;
       _transcript = '';
+      _detectedLanguage = null;
       _errorMessage = null;
       _playbackPosition = Duration.zero;
       _playbackDuration = Duration.zero;
@@ -214,6 +231,37 @@ class _HomeScreenState extends State<HomeScreen> {
                     _ErrorBanner(message: _errorMessage!),
                     const SizedBox(height: 16),
                   ],
+
+                  // Language picker — Auto-detect transcribes in the spoken language.
+                  _SectionCard(
+                    icon: Icons.translate,
+                    label: 'Language',
+                    child: DropdownButtonFormField<SpeechLanguage>(
+                      value: _selectedLanguage,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: [
+                        for (final language in SpeechLanguage.options)
+                          DropdownMenuItem(
+                            value: language,
+                            child: Text(language.label),
+                          ),
+                      ],
+                      onChanged: isBusy
+                          ? null
+                          : (language) {
+                              if (language == null) return;
+                              setState(() => _selectedLanguage = language);
+                            },
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
 
                   // --- Audio section ---
                   _SectionCard(
@@ -261,6 +309,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (_detectedLanguage != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Text(
+                                'Detected: ${_languageLabel(_detectedLanguage!)}',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
                           Expanded(
                             child: DecoratedBox(
                               decoration: BoxDecoration(

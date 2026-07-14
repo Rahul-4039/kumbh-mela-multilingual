@@ -16,7 +16,13 @@ abstract final class AppConstants {
   static const String whisperModel = 'whisper-large-v3-turbo';
 
   /// Expected JSON response format from the API.
-  static const String responseFormat = 'json';
+  ///
+  /// `verbose_json` includes the detected [language] code so Whisper
+  /// returns text in the original spoken language, not a translation.
+  static const String responseFormat = 'verbose_json';
+
+  /// Sampling temperature — 0 gives the most stable multilingual output.
+  static const double transcriptionTemperature = 0;
 
   /// Minimum valid recording size in bytes (~1 KB guard against silence).
   static const int minRecordingBytes = 1024;
