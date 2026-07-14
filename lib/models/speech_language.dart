@@ -43,7 +43,13 @@ class SpeechLanguage {
     SpeechLanguage(
       code: 'mr',
       label: 'Marathi',
-      promptHint: 'नमस्कार, हा मराठीत लिहिलेला मजकूर आहे.',
+      // Marathi and Hindi share Devanagari script, so Whisper sometimes
+      // slips into Hindi spellings/word-forms. Distinctly Marathi verb
+      // endings (आहे, करत आहे, नाही) bias the model toward Marathi rather
+      // than the visually similar Hindi equivalents (है, कर रहा है, नहीं).
+      promptHint:
+          'नमस्कार, मी मराठीत बोलत आहे. हा मजकूर शुद्ध मराठी भाषेत लिहिलेला '
+          'आहे, हिंदीत नाही. कृपया मराठी शब्दलेखन आणि व्याकरण वापरून लिहा.',
     ),
     SpeechLanguage(
       code: 'bn',

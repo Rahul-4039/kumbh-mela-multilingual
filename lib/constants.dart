@@ -13,7 +13,12 @@ abstract final class AppConstants {
       'https://api.groq.com/openai/v1/audio/transcriptions';
 
   /// Whisper model identifier supported by Groq.
-  static const String whisperModel = 'whisper-large-v3-turbo';
+  ///
+  /// `whisper-large-v3` (not the `-turbo` variant) is used deliberately:
+  /// Turbo prunes the decoder from 32 layers to 4 for speed, and that cut
+  /// costs the most accuracy on lower-resource languages (Marathi included).
+  /// Large-v3 is slower but noticeably more accurate for Marathi speech.
+  static const String whisperModel = 'whisper-large-v3';
 
   /// Expected JSON response format from the API.
   ///
